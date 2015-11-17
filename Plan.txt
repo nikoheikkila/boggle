@@ -1,0 +1,26 @@
+Plan for Boggle
+
+Types:
+
+Board = the main type with the grid, words and players
+    grid :: Vector Char -> main grid for characters, each character at index x + y * width
+    with, height :: Int -> size of the grid
+    allWords :: Set String -> all of the words found in the grid, at leat by the computer
+    foundWords :: Set String -> words found by players, needed to prevent same guesses
+    players :: Vector Player -> players
+    ai :: AI -> the AI that searches for all the words
+Player Int = point holder for the player
+AI (Set String) = the AI that searches for all the words in the grid, uses the list of known words
+
+Functions:
+
+main = main game loop + IO
+newBoard :: Board
+    Creates a board
+    Random board = uses a simple Monte Carlo method for generating a board with at least one word in it
+findWord (x, y) board :: (Int, Int) -> Board -> Maybe String
+    Finding a word starting from character at (x, y)
+    A helper method to traverse one character at a time and references to the list of known words to determine whether a valid word is being built and fails if doesn't generate a word.
+    Return when a new word has been found
+findAllWords board :: Board -> Board
+    Fills allWords parameter in Board, calls findWord on every character
