@@ -22,5 +22,6 @@ findWord (x, y) board :: (Int, Int) -> Board -> Maybe String
     Finding a word starting from character at (x, y)
     A helper method to traverse one character at a time and references to the list of known words to determine whether a valid word is being built and fails if doesn't generate a word.
     Return when a new word has been found
+    (Possibly some way to include the already checked boxes)
 findAllWords board :: Board -> Board
     Fills allWords parameter in Board, calls findWord on every character
