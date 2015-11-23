@@ -73,20 +73,20 @@ findWord (sx, sy) board = foundString
      | otherwise = checkNeighbor offsets
       where
        wf = wordFinder board
-       c = (gameGrid board) Vec.! (x + y * (width board)) 
-       newWord = word ++ [toLower c]
-       len = length newWord
-       isAWord = Set.member newWord (knownWords wf)
+       c  = gameGrid board Vec.! (x + y * width board)
+       newWord    = word ++ [toLower c]
+       len        = length newWord
+       isAWord    = Set.member newWord (knownWords wf)
        isNotFound = not (Set.member newWord (foundWords board))
 
        newPath = Set.insert (x, y) traversed
 
-       isGoodWordPart (Just s) = isPrefixOf newWord s
-       isGoodWordPart Nothing = False
+       isGoodWordPart (Just s)  = newWord `isPrefixOf` s
+       isGoodWordPart Nothing   = False
 
        checkNeighbor :: [(Int, Int)] -> (Maybe String, Set.Set (Int, Int))
        checkNeighbor [] = (Nothing, traversed)
-       checkNeighbor ((ox, oy):offs) = 
+       checkNeighbor ((ox, oy):offs) =
         case traverse (x + ox, y + oy) newWord newPath of
           (Just w, t) -> (Just w, t)
           (Nothing, t) -> checkNeighbor offs
@@ -123,10 +123,10 @@ main = do
                case val of
                 ":q" -> exitSuccess
                 _ -> case readMaybe val of
-                      Just v -> if v < lBound then putStrLn "That's a tad too small" >> (prompt msg lBound) else return v
+                      Just v -> if v < lBound then putStrLn "That's a tad too small" >> prompt msg lBound else return v
                       _ -> putStrLn "Invalid number." >> prompt msg lBound
     gridSize <- prompt "Enter the size of the grid (at least 2): " 2
-    playerNumber <- prompt "Enter player number (at least 1): " 1 
+    playerNumber <- prompt "Enter player number (at least 1): " 1
     putStrLn "Loading a board with some words in it"
     board <- newBasicBoard gridSize playerNumber
 
@@ -134,19 +134,19 @@ main = do
         printBoard board = do
                            let lines = [spacefy (Vec.toList (Vec.take w s)) | i <- [0..(w - 1)], let s = Vec.drop (i * h) grid]
                                 where
-                                  spacefy [] = ' ' : []
+                                  spacefy [] = [' ']
                                   spacefy (c:str) = ' ' : c : spacefy str
                                   w = width board
                                   h = height board
                                   grid = gameGrid board
                            putStrLn $ unlines lines
-    let gameLoop :: Board -> String -> Int -> IO (Board)
+    let gameLoop :: Board -> String -> Int -> IO Board
         gameLoop board status currentPlayer = do
                     setCursorPosition 0 0
                     clearScreen
                     printBoard board
-                    let player = (players board) Vec.! currentPlayer
-                    putStrLn ("Player " ++ show (currentPlayer))
+                    let player = players board Vec.! currentPlayer
+                    putStrLn ("Player " ++ show currentPlayer)
                     putStrLn ("Points: " ++ show (points player))
                     putStrLn status
                     putStrLn "Enter a word you find on the grid (:end to end turn or :q to quit): "
@@ -154,8 +154,7 @@ main = do
                     word <- getLine
                     case word of
                       ":end" -> if currentPlayer == (Vec.length (players board) - 1) then return board
-                                 else do
-                                  gameLoop board "# Round ended! Next player #" (currentPlayer + 1)
+                                 else gameLoop board "# Round ended! Next player #" (currentPlayer + 1)
                       ":q" -> putStrLn "Exiting" >> exitSuccess
                       _ -> if length word <= 4 then gameLoop board "# The word must be at least 4 characters long in order to award points. #" currentPlayer
                             else if Set.member (toLowStr word) (allWords board) then
@@ -163,8 +162,8 @@ main = do
                               gameLoop board "# This word has already been found and thus gives no points. #" currentPlayer
                              else do
                               let dp = computePoints word
-                              let plr = player {points = (points player) + dp}
-                              let brd = board { players = (players board) Vec.// [(currentPlayer, plr)], foundWords = Set.insert (toLowStr word) (foundWords board)}
+                              let plr = player {points = points player + dp}
+                              let brd = board { players = players board Vec.// [(currentPlayer, plr)], foundWords = Set.insert (toLowStr word) (foundWords board)}
                               gameLoop brd ("# Found \"" ++ word ++ "\"! Awarded " ++ show dp ++ " point(s). #") currentPlayer
                             else gameLoop board "# I don't see this word in the grid #" currentPlayer
 
@@ -178,10 +177,10 @@ main = do
     putStrLn "All words in this grid:"
     putStrLn (unlines (Set.toList (allWords endBoard)))
     putStrLn "\nPlayer points:"
-    putStrLn (concat (map (\(i, Player pts) -> "Player " ++ show i ++ " -- " ++ show pts ++ " pts\n") (Vec.toList (Vec.indexed (players endBoard)))))
+    putStrLn $ concatMap (\ (i, Player pts) -> "Player " ++ show i ++ " -- " ++ show pts ++ " pts\n") (Vec.toList (Vec.indexed (players endBoard)))
     let winnerIndex = Vec.maxIndex (players endBoard)
-    let winnerPoints = points ((players endBoard) Vec.! winnerIndex)
-    if  Vec.all (\(Player pts) -> pts == winnerPoints) (players endBoard) && Vec.length (players endBoard) /= 1 then
+    let winnerPoints = points (players endBoard Vec.! winnerIndex)
+    if Vec.all (\(Player pts) -> pts == winnerPoints) (players endBoard) && Vec.length (players endBoard) /= 1 then
       putStrLn "Draw"
     else
       putStrLn ("Player " ++ show winnerIndex ++ " wins")
